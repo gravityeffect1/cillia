@@ -1,0 +1,1239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cilia Explorer - Interactive Histology Platform</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --axoneme: #5BC4F0;
+      --doublet: #3A9ED4;
+      --central-pair: #F0E040;
+      --dynein: #F07850;
+      --nexin: #A070E8;
+      --radial-spoke: #60D890;
+      --basal-body: #E06080;
+      --striated-rootlet: #F0A040;
+      --plasma-membrane: #80C8A0;
+      --ciliary-necklace: #C080F0;
+      --alar-sheet: #F07050;
+      --basal-foot: #70B0E0;
+      --tubulin-a: #4AA8D8;
+      --tubulin-b: #F08060;
+
+      --bg-dark: #080C1A;
+      --bg-card: #0F1526;
+      --bg-hover: #161D35;
+      --text-primary: #F0F4FF;
+      --text-secondary: #8A9BB8;
+      --text-accent: #5BC4F0;
+      --border: rgba(91, 196, 240, 0.12);
+
+      --font-main: 'DM Sans', sans-serif;
+      --font-display: 'Syne', sans-serif;
+      --font-mono: 'DM Mono', monospace;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: var(--font-main);
+      background: var(--bg-dark);
+      color: var(--text-primary);
+      overflow-x: hidden;
+      line-height: 1.6;
+    }
+
+    /* ── HEADER ─────────────────────────────── */
+    .app-header {
+      padding: 1rem 2rem;
+      background: rgba(15, 21, 38, 0.96);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+      position: sticky; top: 0; z-index: 100;
+    }
+    .header-content {
+      max-width: 1400px; margin: 0 auto;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .header-logo {
+      display: flex; align-items: center; gap: 0.75rem; cursor: pointer;
+    }
+    .logo-icon {
+      width: 34px; height: 34px;
+      background: linear-gradient(135deg, #5BC4F0, #A070E8);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.2rem;
+    }
+    .logo-text { font-family: var(--font-display); font-weight: 700; font-size: 1.1rem; letter-spacing: -0.02em; }
+    .header-nav { display: flex; gap: 2rem; align-items: center; }
+    .nav-link {
+      color: var(--text-secondary); text-decoration: none; font-size: 0.875rem;
+      font-weight: 500; cursor: pointer; position: relative; transition: color 0.2s;
+    }
+    .nav-link:hover { color: var(--text-primary); }
+    .nav-link.active { color: var(--text-accent); }
+    .nav-link.active::after {
+      content: ''; position: absolute; bottom: -1.3rem;
+      left: 0; right: 0; height: 2px; background: var(--text-accent);
+    }
+
+    /* ── MAIN ────────────────────────────────── */
+    main {
+      max-width: 1400px; margin: 0 auto;
+      padding: 3rem 2rem 6rem;
+      min-height: calc(100vh - 200px);
+    }
+    .module-section { display: none; animation: fadeIn 0.5s ease; }
+    .module-section.active { display: block; }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(18px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── TYPOGRAPHY ──────────────────────────── */
+    .title-section { margin-bottom: 3rem; }
+    .title-badge {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      padding: 0.45rem 1rem;
+      background: rgba(91, 196, 240, 0.08);
+      border: 1px solid rgba(91, 196, 240, 0.2);
+      border-radius: 100px;
+      font-size: 0.72rem; font-weight: 700; color: var(--text-accent);
+      text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 1.5rem;
+    }
+    .title-section h1 {
+      font-family: var(--font-display);
+      font-size: clamp(2.4rem, 5vw, 4rem);
+      font-weight: 800; letter-spacing: -0.03em; margin-bottom: 1rem;
+      background: linear-gradient(135deg, #F0F4FF 30%, #8A9BB8);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .title-section p { font-size: 1.1rem; color: var(--text-secondary); max-width: 700px; line-height: 1.75; }
+
+    /* ── CARDS ───────────────────────────────── */
+    .content-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 24px; padding: 3rem; margin-bottom: 2rem;
+    }
+    .content-card h2 { font-family: var(--font-display); font-size: 1.9rem; font-weight: 700; margin-bottom: 1.5rem; color: var(--text-primary); }
+    .content-card h3 { font-family: var(--font-display); font-size: 1.4rem; font-weight: 600; margin-top: 2rem; margin-bottom: 1rem; color: var(--text-primary); }
+    .content-card h4 { font-size: 1.05rem; font-weight: 600; margin-top: 1.5rem; margin-bottom: 0.75rem; color: var(--text-accent); }
+    .content-card p { color: var(--text-secondary); line-height: 1.85; margin-bottom: 1.25rem; }
+    .content-card ul, .content-card ol { color: var(--text-secondary); line-height: 1.85; margin-bottom: 1.25rem; padding-left: 1.5rem; }
+    .content-card li { margin-bottom: 0.5rem; }
+
+    /* ── LEARN/RESEARCH EXTRAS ───────────────── */
+    .reference {
+      background: rgba(91, 196, 240, 0.05); border-left: 3px solid var(--text-accent);
+      padding: 1rem 1.5rem; margin: 1.5rem 0; font-size: 0.92rem;
+      color: var(--text-secondary); font-style: italic;
+    }
+    .equation {
+      background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+      border-radius: 8px; padding: 1rem; font-family: var(--font-mono);
+      text-align: center; margin: 1.5rem 0; color: var(--text-accent); font-size: 1.05rem;
+    }
+    .data-table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; overflow-x: auto; display: block; }
+    .data-table table { width: 100%; }
+    .data-table th, .data-table td { padding: 0.75rem; text-align: left; border-bottom: 1px solid var(--border); }
+    .data-table th { background: rgba(255,255,255,0.04); color: var(--text-accent); font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; }
+    .data-table td { color: var(--text-secondary); }
+    .clinical-note {
+      background: rgba(255, 190, 80, 0.08); border: 1px solid rgba(255, 190, 80, 0.28);
+      border-radius: 12px; padding: 1.5rem; margin: 1.5rem 0;
+    }
+    .clinical-note h4 { color: #FFB840; margin-top: 0; }
+
+    /* ── INTERACTIVE SVG CONTAINER ────────────── */
+    .cilia-container {
+      position: relative; background: var(--bg-card);
+      border: 1px solid var(--border); border-radius: 24px;
+      padding: 3rem; margin-bottom: 3rem;
+    }
+    .controls-bar {
+      display: flex; gap: 1rem; margin-bottom: 2rem;
+      padding-bottom: 1.5rem; border-bottom: 1px solid var(--border);
+      flex-wrap: wrap; justify-content: center;
+    }
+    .control-btn {
+      padding: 0.6rem 1.25rem;
+      background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+      border-radius: 8px; color: var(--text-secondary);
+      font-size: 0.875rem; font-weight: 500; cursor: pointer;
+      transition: all 0.2s; font-family: var(--font-main);
+      display: flex; align-items: center; gap: 0.5rem;
+    }
+    .control-btn:hover { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.18); color: var(--text-primary); transform: translateY(-2px); }
+    .control-btn.active { background: var(--text-accent); border-color: var(--text-accent); color: var(--bg-dark); font-weight: 700; }
+
+    .cilia-svg { width: 100%; height: auto; display: block; }
+
+    .interactive-element { cursor: pointer; transition: all 0.3s cubic-bezier(0.4,0,0.2,1); }
+    .interactive-element:hover { filter: brightness(1.25) drop-shadow(0 0 8px currentColor); }
+    .interactive-element.selected { filter: brightness(1.4) drop-shadow(0 0 18px currentColor); }
+
+    /* ── DETAIL MODULE ───────────────────────── */
+    .main-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem; }
+    .schematic-container {
+      position: relative; width: 100%; aspect-ratio: 1;
+      background: var(--bg-hover); border-radius: 16px; overflow: hidden;
+    }
+    .schematic-svg { width: 100%; height: 100%; }
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1rem; margin-top: 1.5rem; }
+    .stat-card { background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 12px; padding: 1rem; text-align: center; }
+    .stat-value { font-size: 1.6rem; font-weight: 700; color: var(--text-accent); font-family: var(--font-mono); }
+    .stat-label { font-size: 0.825rem; color: var(--text-secondary); margin-top: 0.4rem; }
+
+    /* ── INFO OVERLAY ────────────────────────── */
+    .info-overlay {
+      position: fixed; inset: 0; background: rgba(8, 12, 26, 0.92);
+      backdrop-filter: blur(14px); display: none;
+      align-items: center; justify-content: center;
+      z-index: 1000; padding: 2rem; animation: fadeIn 0.3s ease;
+    }
+    .info-overlay.active { display: flex; }
+    .info-panel {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 24px; padding: 2.5rem;
+      max-width: 700px; width: 100%; max-height: 90vh;
+      overflow-y: auto; position: relative;
+      animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(28px) scale(0.95); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .info-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2rem; }
+    .info-icon-wrapper { width: 68px; height: 68px; border-radius: 16px; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; }
+    .info-icon-wrapper::before { content: ''; position: absolute; inset: 0; background: inherit; opacity: 0.15; }
+    .info-icon { font-size: 1.9rem; position: relative; z-index: 1; }
+    .close-btn {
+      background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+      border-radius: 8px; width: 36px; height: 36px;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--text-secondary); cursor: pointer; transition: all 0.2s; font-size: 1.25rem;
+    }
+    .close-btn:hover { background: rgba(255,255,255,0.1); color: var(--text-primary); }
+    .info-panel h3 { font-family: var(--font-display); font-size: 1.75rem; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 0.4rem; }
+    .info-subtitle { font-size: 0.825rem; color: var(--text-accent); font-weight: 600; font-family: var(--font-mono); margin-bottom: 1.5rem; text-transform: uppercase; letter-spacing: 0.06em; }
+    .info-description { color: var(--text-secondary); line-height: 1.75; margin-bottom: 2rem; }
+    .info-stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-bottom: 2rem; }
+    .fun-fact { padding: 1.4rem; background: rgba(91, 196, 240, 0.05); border: 1px solid rgba(91,196,240,0.15); border-radius: 12px; margin-bottom: 2rem; }
+    .fun-fact-label { font-size: 0.72rem; font-weight: 700; color: var(--text-accent); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.7rem; display: flex; align-items: center; gap: 0.5rem; }
+    .fun-fact-text { font-size: 0.9rem; color: var(--text-secondary); line-height: 1.65; }
+    .action-btn { width: 100%; padding: 1rem; border: none; border-radius: 12px; font-family: var(--font-main); font-size: 1rem; font-weight: 600; color: var(--bg-dark); cursor: pointer; transition: all 0.2s; background: var(--text-accent); }
+    .action-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(91, 196, 240, 0.35); }
+
+    /* ── LEGEND ──────────────────────────────── */
+    .legend { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 0.85rem; margin-top: 2rem; padding-top: 2rem; border-top: 1px solid var(--border); }
+    .legend-item { display: flex; align-items: center; gap: 0.75rem; padding: 0.7rem 1rem; background: rgba(255,255,255,0.025); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; transition: all 0.2s; }
+    .legend-item:hover { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.18); }
+    .legend-color { width: 11px; height: 11px; border-radius: 3px; box-shadow: 0 0 7px currentColor; flex-shrink: 0; }
+    .legend-label { font-size: 0.84rem; font-weight: 500; color: var(--text-secondary); }
+
+    /* ── BOTTOM NAV ──────────────────────────── */
+    .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(15,21,38,0.96); backdrop-filter: blur(20px); border-top: 1px solid var(--border); padding: 0.75rem 2rem; z-index: 99; }
+    .bottom-nav-content { max-width: 1400px; margin: 0 auto; display: flex; justify-content: space-around; align-items: center; }
+    .bottom-nav-item { display: flex; flex-direction: column; align-items: center; gap: 0.25rem; color: var(--text-secondary); text-decoration: none; font-size: 0.72rem; font-weight: 500; cursor: pointer; transition: all 0.2s; padding: 0.5rem 1rem; border-radius: 8px; }
+    .bottom-nav-item:hover { color: var(--text-primary); background: rgba(255,255,255,0.04); }
+    .bottom-nav-item.active { color: var(--text-accent); background: rgba(91,196,240,0.08); }
+    .bottom-nav-icon { font-size: 1.2rem; }
+
+    /* ── ANIMATIONS ──────────────────────────── */
+    @keyframes bendLeft  { 0%,100%{transform:skewX(0deg)} 50%{transform:skewX(-12deg)} }
+    @keyframes bendRight { 0%,100%{transform:skewX(0deg)} 25%{transform:skewX(14deg)} 75%{transform:skewX(-10deg)} }
+    @keyframes beatCilia { 0%,100%{transform:rotate(0deg)} 30%{transform:rotate(-25deg)} 60%{transform:rotate(8deg)} }
+    @keyframes rotate360 { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+    @keyframes protonPulse { 0%,100%{opacity:0.3;r:3} 50%{opacity:1;r:5} }
+    @keyframes flowDown { 0%{transform:translateY(-30px);opacity:0} 20%{opacity:1} 80%{opacity:1} 100%{transform:translateY(30px);opacity:0} }
+    @keyframes glow-pulse { 0%,100%{opacity:0.6} 50%{opacity:1} }
+
+    .beating { animation: beatCilia 1.2s ease-in-out infinite; transform-origin: bottom center; }
+    .paused { animation-play-state: paused !important; }
+
+    /* ── RESPONSIVE ──────────────────────────── */
+    @media(max-width:968px){
+      .header-nav{display:none}
+      .title-section h1{font-size:2rem}
+      .cilia-container,.content-card{padding:1.5rem}
+      .info-stats{grid-template-columns:1fr}
+      .main-grid{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+
+<header class="app-header">
+  <div class="header-content">
+    <div class="header-logo" onclick="navigateToModule('home')">
+      <div class="logo-icon">🔬</div>
+      <span class="logo-text">Cilia Explorer</span>
+    </div>
+    <nav class="header-nav">
+      <a class="nav-link active" data-module="home">Home</a>
+      <a class="nav-link" data-module="interactive">Interactive</a>
+      <a class="nav-link" data-module="cross-section">Cross-Section</a>
+      <a class="nav-link" data-module="learn">Learn</a>
+      <a class="nav-link" data-module="research">Research</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+  <!-- ════════════════════════════════════════ HOME ═════ -->
+  <section class="module-section active" id="home">
+    <div class="title-section">
+      <div class="title-badge"><span>🔬</span><span>Interactive Histology Platform</span></div>
+      <h1>Explore Cilia</h1>
+      <p>An interactive educational platform for learning the ultrastructure and function of cilia — the remarkable hair-like organelles that drive fluid flow, sensation, and development across the body.</p>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:2rem;margin-top:3rem;">
+      <div class="content-card" style="cursor:pointer;transition:transform 0.3s;" onclick="navigateToModule('interactive')" onmouseover="this.style.transform='translateY(-8px)'" onmouseout="this.style.transform='translateY(0)'">
+        <div style="font-size:3rem;margin-bottom:1rem;">🧬</div>
+        <h2 style="margin-bottom:1rem;">Longitudinal View</h2>
+        <p style="margin-bottom:0;">Explore a fully labelled animated cilium. Click any structure — axoneme, basal body, rootlet — to learn its function.</p>
+      </div>
+      <div class="content-card" style="cursor:pointer;transition:transform 0.3s;" onclick="navigateToModule('cross-section')" onmouseover="this.style.transform='translateY(-8px)'" onmouseout="this.style.transform='translateY(0)'">
+        <div style="font-size:3rem;margin-bottom:1rem;">⭕</div>
+        <h2 style="margin-bottom:1rem;">9+2 Cross-Section</h2>
+        <p style="margin-bottom:0;">The iconic 9+2 axonemal arrangement in detail — doublets, dynein arms, radial spokes, and the central sheath.</p>
+      </div>
+      <div class="content-card" style="cursor:pointer;transition:transform 0.3s;" onclick="navigateToModule('learn')" onmouseover="this.style.transform='translateY(-8px)'" onmouseout="this.style.transform='translateY(0)'">
+        <div style="font-size:3rem;margin-bottom:1rem;">📚</div>
+        <h2 style="margin-bottom:1rem;">Histology Content</h2>
+        <p style="margin-bottom:0;">Comprehensive ciliary biology from Ross &amp; Pawlina's Histology, Junqueira, and Alberts — structure, function, motility.</p>
+      </div>
+      <div class="content-card" style="cursor:pointer;transition:transform 0.3s;" onclick="navigateToModule('research')" onmouseover="this.style.transform='translateY(-8px)'" onmouseout="this.style.transform='translateY(0)'">
+        <div style="font-size:3rem;margin-bottom:1rem;">🧫</div>
+        <h2 style="margin-bottom:1rem;">Clinical Research</h2>
+        <p style="margin-bottom:0;">Primary Ciliary Dyskinesia, Kartagener Syndrome, polycystic kidney disease, and ciliopathy therapies.</p>
+      </div>
+    </div>
+
+    <div class="content-card" style="margin-top:3rem;">
+      <h2>Quick Facts</h2>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1.5rem;margin-top:2rem;">
+        <div>
+          <div style="color:var(--text-accent);font-size:2rem;font-weight:700;font-family:var(--font-mono);">9+2</div>
+          <div style="color:var(--text-secondary);font-size:0.875rem;margin-top:0.5rem;">Axonemal microtubule arrangement</div>
+        </div>
+        <div>
+          <div style="color:var(--text-accent);font-size:2rem;font-weight:700;font-family:var(--font-mono);">~250 nm</div>
+          <div style="color:var(--text-secondary);font-size:0.875rem;margin-top:0.5rem;">Diameter of ciliary axoneme</div>
+        </div>
+        <div>
+          <div style="color:var(--text-accent);font-size:2rem;font-weight:700;font-family:var(--font-mono);">5–15 μm</div>
+          <div style="color:var(--text-secondary);font-size:0.875rem;margin-top:0.5rem;">Typical motile cilium length</div>
+        </div>
+        <div>
+          <div style="color:var(--text-accent);font-size:2rem;font-weight:700;font-family:var(--font-mono);">~10 Hz</div>
+          <div style="color:var(--text-secondary);font-size:0.875rem;margin-top:0.5rem;">Beat frequency (respiratory)</div>
+        </div>
+        <div>
+          <div style="color:var(--text-accent);font-size:2rem;font-weight:700;font-family:var(--font-mono);">200+</div>
+          <div style="color:var(--text-secondary);font-size:0.875rem;margin-top:0.5rem;">Proteins in cilia proteome</div>
+        </div>
+        <div>
+          <div style="color:var(--text-accent);font-size:2rem;font-weight:700;font-family:var(--font-mono);">1/20,000</div>
+          <div style="color:var(--text-secondary);font-size:0.875rem;margin-top:0.5rem;">PCD prevalence</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════ INTERACTIVE ═══ -->
+  <section class="module-section" id="interactive">
+    <div class="title-section">
+      <div class="title-badge"><span>🧬</span><span>Longitudinal Visualization</span></div>
+      <h1>Cilium — Longitudinal Section</h1>
+      <p>Click any structure to explore its composition and function. Toggle views for structure, function, or live beating animation.</p>
+    </div>
+
+    <div class="cilia-container">
+      <div class="controls-bar">
+        <button class="control-btn active" id="btnStructure" onclick="toggleCiliaView('structure',this)">Structure View</button>
+        <button class="control-btn" id="btnFunction" onclick="toggleCiliaView('function',this)">Function View</button>
+        <button class="control-btn" id="btnBeat"      onclick="toggleCiliaView('beat',this)">▶ Beat Animation</button>
+        <button class="control-btn" id="btnLabels"    onclick="toggleLabels(this)">Labels ON</button>
+      </div>
+
+      <!-- ─── LONGITUDINAL SVG ─────────────────────────── -->
+      <svg class="cilia-svg" id="ciliaSvg" viewBox="0 0 1000 700" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="axGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%"   stop-color="#1A3A50"/>
+            <stop offset="50%"  stop-color="#0A2030"/>
+            <stop offset="100%" stop-color="#1A3A50"/>
+          </linearGradient>
+          <linearGradient id="membGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%"   stop-color="#60A878" stop-opacity="0.5"/>
+            <stop offset="50%"  stop-color="#80C8A0" stop-opacity="0.7"/>
+            <stop offset="100%" stop-color="#60A878" stop-opacity="0.5"/>
+          </linearGradient>
+          <linearGradient id="bbGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%"   stop-color="#602030"/>
+            <stop offset="50%"  stop-color="#E06080"/>
+            <stop offset="100%" stop-color="#602030"/>
+          </linearGradient>
+          <linearGradient id="rootGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%"   stop-color="#F0A040"/>
+            <stop offset="100%" stop-color="#402010"/>
+          </linearGradient>
+          <radialGradient id="tubGrad" cx="40%" cy="35%">
+            <stop offset="0%"   stop-color="#6CCCF0"/>
+            <stop offset="100%" stop-color="#2A78A8"/>
+          </radialGradient>
+          <filter id="glow">
+            <feGaussianBlur stdDeviation="4" result="cb"/>
+            <feMerge><feMergeNode in="cb"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+          <filter id="softGlow">
+            <feGaussianBlur stdDeviation="2" result="cb"/>
+            <feMerge><feMergeNode in="cb"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
+
+        <!-- ── BEATING GROUP (animates as one) ─────────── -->
+        <g id="beatGroup">
+
+          <!-- PLASMA MEMBRANE -->
+          <g id="plasmaMembrane" class="interactive-element" data-element="plasmaMembrane">
+            <rect x="430" y="30" width="140" height="400" rx="70" fill="url(#membGrad)" stroke="#80C8A0" stroke-width="2.5" opacity="0.85"/>
+            <rect x="433" y="33" width="134" height="394" rx="67" fill="none" stroke="#A0D8B8" stroke-width="1" opacity="0.4" stroke-dasharray="5 4"/>
+          </g>
+
+          <!-- AXONEME (microtubule shaft) -->
+          <g id="axoneme" class="interactive-element" data-element="axoneme">
+            <!-- 9 outer doublet pairs simplified as vertical tubes -->
+            <rect x="450" y="60" width="10" height="360" rx="5" fill="url(#tubGrad)" opacity="0.9"/>
+            <rect x="464" y="60" width="10" height="360" rx="5" fill="url(#tubGrad)" opacity="0.9"/>
+            <rect x="478" y="60" width="10" height="360" rx="5" fill="url(#tubGrad)" opacity="0.85"/>
+            <rect x="492" y="60" width="10" height="360" rx="5" fill="url(#tubGrad)" opacity="0.85"/>
+            <rect x="506" y="60" width="10" height="360" rx="5" fill="url(#tubGrad)" opacity="0.9"/>
+            <rect x="520" y="60" width="10" height="360" rx="5" fill="url(#tubGrad)" opacity="0.9"/>
+            <rect x="534" y="60" width="10" height="360" rx="5" fill="url(#tubGrad)" opacity="0.85"/>
+            <rect x="548" y="60" width="10" height="360" rx="5" fill="url(#tubGrad)" opacity="0.85"/>
+            <!-- Central pair -->
+            <rect x="489" y="60" width="7" height="360" rx="3.5" fill="#F0E040" opacity="0.8" filter="url(#softGlow)"/>
+            <rect x="504" y="60" width="7" height="360" rx="3.5" fill="#F0E040" opacity="0.8" filter="url(#softGlow)"/>
+          </g>
+
+          <!-- DYNEIN ARMS (decorative lines between doublets) -->
+          <g id="dyneinArms" class="interactive-element" data-element="dyneinArms" opacity="0.75">
+            <!-- repeating arm motifs along shaft -->
+            <g fill="none" stroke="#F07850" stroke-width="2.5" stroke-linecap="round">
+              <path d="M460,100 Q470,95 478,100"/> <path d="M460,130 Q470,125 478,130"/>
+              <path d="M460,160 Q470,155 478,160"/> <path d="M460,190 Q470,185 478,190"/>
+              <path d="M460,220 Q470,215 478,220"/> <path d="M460,250 Q470,245 478,250"/>
+              <path d="M460,280 Q470,275 478,280"/> <path d="M460,310 Q470,305 478,310"/>
+              <path d="M460,340 Q470,335 478,340"/>
+              <!-- other side -->
+              <path d="M530,100 Q540,95 548,100"/> <path d="M530,130 Q540,125 548,130"/>
+              <path d="M530,160 Q540,155 548,160"/> <path d="M530,190 Q540,185 548,190"/>
+              <path d="M530,220 Q540,215 548,220"/> <path d="M530,250 Q540,245 548,250"/>
+              <path d="M530,280 Q540,275 548,280"/> <path d="M530,310 Q540,305 548,310"/>
+              <path d="M530,340 Q540,335 548,340"/>
+            </g>
+          </g>
+
+          <!-- NEXIN LINKS -->
+          <g id="nexinLinks" class="interactive-element" data-element="nexinLinks" opacity="0.7">
+            <g fill="none" stroke="#A070E8" stroke-width="2" stroke-dasharray="4 3">
+              <line x1="460" y1="115" x2="548" y2="115"/>
+              <line x1="460" y1="175" x2="548" y2="175"/>
+              <line x1="460" y1="235" x2="548" y2="235"/>
+              <line x1="460" y1="295" x2="548" y2="295"/>
+              <line x1="460" y1="355" x2="548" y2="355"/>
+            </g>
+          </g>
+
+          <!-- RADIAL SPOKES -->
+          <g id="radialSpokes" class="interactive-element" data-element="radialSpokes" opacity="0.7">
+            <g stroke="#60D890" stroke-width="2" fill="none">
+              <line x1="500" y1="90"  x2="500" y2="75"/>
+              <line x1="500" y1="150" x2="500" y2="135"/>
+              <line x1="500" y1="210" x2="500" y2="195"/>
+              <line x1="500" y1="270" x2="500" y2="255"/>
+              <line x1="500" y1="330" x2="500" y2="315"/>
+              <line x1="500" y1="390" x2="500" y2="375"/>
+            </g>
+          </g>
+
+          <!-- TRANSITIONAL ZONE (ciliary necklace) -->
+          <g id="transitionalZone" class="interactive-element" data-element="transitionalZone">
+            <rect x="432" y="420" width="136" height="28" rx="6" fill="rgba(192,128,240,0.18)" stroke="#C080F0" stroke-width="2"/>
+            <text x="500" y="439" text-anchor="middle" fill="#C080F0" font-size="10" font-weight="600" font-family="DM Mono, monospace">TRANSITIONAL ZONE</text>
+          </g>
+
+        </g><!-- end beatGroup -->
+
+        <!-- ── BASAL BODY (anchored — does NOT beat) ────── -->
+        <g id="basalBody" class="interactive-element" data-element="basalBody">
+          <rect x="428" y="448" width="144" height="75" rx="8" fill="url(#bbGrad)" stroke="#E06080" stroke-width="2.5" opacity="0.92"/>
+          <!-- Triplet rows inside basal body -->
+          <g fill="#FF98B8" opacity="0.7">
+            <rect x="440" y="456" width="8" height="55" rx="4"/>
+            <rect x="453" y="456" width="8" height="55" rx="4"/>
+            <rect x="466" y="456" width="8" height="55" rx="4"/>
+            <rect x="479" y="456" width="8" height="55" rx="4"/>
+            <rect x="492" y="456" width="8" height="55" rx="4"/>
+            <rect x="505" y="456" width="8" height="55" rx="4"/>
+            <rect x="518" y="456" width="8" height="55" rx="4"/>
+            <rect x="531" y="456" width="8" height="55" rx="4"/>
+            <rect x="544" y="456" width="8" height="55" rx="4"/>
+          </g>
+          <!-- alar sheet -->
+          <g id="alarSheet" class="interactive-element" data-element="alarSheet">
+            <line x1="428" y1="458" x2="390" y2="468" stroke="#F07050" stroke-width="2.5" stroke-linecap="round"/>
+            <line x1="572" y1="458" x2="610" y2="468" stroke="#F07050" stroke-width="2.5" stroke-linecap="round"/>
+            <circle cx="388" cy="468" r="4" fill="#F07050"/>
+            <circle cx="612" cy="468" r="4" fill="#F07050"/>
+          </g>
+          <!-- basal foot -->
+          <g id="basalFoot" class="interactive-element" data-element="basalFoot">
+            <path d="M 430,490 L 390,510 L 388,525 L 430,508 Z" fill="#70B0E0" opacity="0.85" stroke="#70B0E0" stroke-width="1"/>
+            <path d="M 570,490 L 610,510 L 612,525 L 570,508 Z" fill="#70B0E0" opacity="0.85" stroke="#70B0E0" stroke-width="1"/>
+          </g>
+        </g>
+
+        <!-- ── STRIATED ROOTLET ──────────────────────────── -->
+        <g id="striatedRootlet" class="interactive-element" data-element="striatedRootlet">
+          <path d="M 465,523 L 470,620 L 500,640 L 530,620 L 535,523 Z" fill="url(#rootGrad)" stroke="#F0A040" stroke-width="2" opacity="0.88"/>
+          <!-- striation lines -->
+          <g stroke="#F8C060" stroke-width="1.2" opacity="0.7">
+            <line x1="466" y1="540" x2="534" y2="540"/>
+            <line x1="467" y1="556" x2="533" y2="556"/>
+            <line x1="468" y1="572" x2="532" y2="572"/>
+            <line x1="469" y1="588" x2="531" y2="588"/>
+            <line x1="470" y1="604" x2="530" y2="604"/>
+          </g>
+        </g>
+
+        <!-- ── CELL BODY INDICATOR ──────────────────────── -->
+        <rect x="0" y="635" width="1000" height="65" fill="rgba(15,21,38,0.9)" rx="0"/>
+        <text x="500" y="665" text-anchor="middle" fill="rgba(138,155,184,0.6)" font-size="13" font-family="DM Sans, sans-serif" font-weight="500">Cell Cytoplasm</text>
+        <line x1="0" y1="637" x2="1000" y2="637" stroke="rgba(91,196,240,0.2)" stroke-width="1" stroke-dasharray="8 6"/>
+
+        <!-- ── FLOW PARTICLES (hidden by default) ──────── -->
+        <g id="flowParticles" opacity="0">
+          <circle r="4" fill="#5BC4F0" opacity="0.8" filter="url(#glow)">
+            <animate attributeName="cy" from="30" to="430" dur="3s" repeatCount="indefinite"/>
+            <animate attributeName="cx" values="455;475;455" dur="3s" repeatCount="indefinite"/>
+          </circle>
+          <circle r="4" fill="#5BC4F0" opacity="0.8" filter="url(#glow)">
+            <animate attributeName="cy" from="30" to="430" begin="0.5s" dur="3s" repeatCount="indefinite"/>
+            <animate attributeName="cx" values="520;540;520" begin="0.5s" dur="3s" repeatCount="indefinite"/>
+          </circle>
+          <circle r="3" fill="#F0E040" opacity="0.7" filter="url(#glow)">
+            <animate attributeName="cy" from="30" to="430" begin="1s" dur="3s" repeatCount="indefinite"/>
+            <animate attributeName="cx" values="492;492;492" begin="1s" dur="3s" repeatCount="indefinite"/>
+          </circle>
+          <circle r="3" fill="#F0E040" opacity="0.7" filter="url(#glow)">
+            <animate attributeName="cy" from="30" to="430" begin="1.5s" dur="3s" repeatCount="indefinite"/>
+            <animate attributeName="cx" values="507;507;507" begin="1.5s" dur="3s" repeatCount="indefinite"/>
+          </circle>
+        </g>
+
+        <!-- ── LABELS GROUP ─────────────────────────────── -->
+        <g id="labelsGroup" font-family="DM Sans, sans-serif" font-size="13" fill="var(--text-secondary)">
+          <!-- right side labels -->
+          <line x1="572" y1="60"  x2="640" y2="55"  stroke="rgba(91,196,240,0.4)" stroke-width="1"/>
+          <text x="645" y="59"  fill="#8A9BB8">Plasma membrane</text>
+
+          <line x1="562" y1="90"  x2="640" y2="85"  stroke="rgba(91,196,240,0.3)" stroke-width="1"/>
+          <text x="645" y="89"  fill="#5BC4F0" font-weight="600">Axoneme (9+2)</text>
+
+          <line x1="558" y1="160" x2="640" y2="155" stroke="rgba(240,120,80,0.4)" stroke-width="1"/>
+          <text x="645" y="159" fill="#F07850">Dynein arms</text>
+
+          <line x1="552" y1="235" x2="640" y2="230" stroke="rgba(160,112,232,0.4)" stroke-width="1"/>
+          <text x="645" y="234" fill="#A070E8">Nexin links</text>
+
+          <line x1="500" y1="72"  x2="430" y2="55"  stroke="rgba(240,224,64,0.4)" stroke-width="1"/>
+          <text x="280" y="59"  fill="#F0E040">Central pair</text>
+
+          <line x1="500" y1="316" x2="425" y2="310" stroke="rgba(96,216,144,0.4)" stroke-width="1"/>
+          <text x="320" y="313" fill="#60D890">Radial spokes</text>
+
+          <line x1="430" y1="434" x2="380" y2="440" stroke="rgba(192,128,240,0.4)" stroke-width="1"/>
+          <text x="248" y="444" fill="#C080F0">Transitional zone</text>
+
+          <line x1="430" y1="475" x2="380" y2="490" stroke="rgba(224,96,128,0.4)" stroke-width="1"/>
+          <text x="278" y="493" fill="#E06080">Basal body</text>
+
+          <line x1="390"  y1="468" x2="340" y2="460" stroke="rgba(240,112,80,0.4)" stroke-width="1"/>
+          <text x="240" y="463" fill="#F07050">Alar sheet</text>
+
+          <line x1="390"  y1="510" x2="340" y2="525" stroke="rgba(112,176,224,0.4)" stroke-width="1"/>
+          <text x="246" y="528" fill="#70B0E0">Basal foot</text>
+
+          <line x1="570" y1="580" x2="640" y2="575" stroke="rgba(240,160,64,0.4)" stroke-width="1"/>
+          <text x="645" y="579" fill="#F0A040">Striated rootlet</text>
+        </g>
+      </svg>
+
+      <div class="legend">
+        <div class="legend-item" onclick="highlightCiliaElement('plasmaMembrane')"><div class="legend-color" style="background:#80C8A0;color:#80C8A0;"></div><span class="legend-label">Plasma Membrane</span></div>
+        <div class="legend-item" onclick="highlightCiliaElement('axoneme')"><div class="legend-color" style="background:#5BC4F0;color:#5BC4F0;"></div><span class="legend-label">Axoneme (9+2)</span></div>
+        <div class="legend-item" onclick="highlightCiliaElement('dyneinArms')"><div class="legend-color" style="background:#F07850;color:#F07850;"></div><span class="legend-label">Dynein Arms</span></div>
+        <div class="legend-item" onclick="highlightCiliaElement('nexinLinks')"><div class="legend-color" style="background:#A070E8;color:#A070E8;"></div><span class="legend-label">Nexin Links</span></div>
+        <div class="legend-item" onclick="highlightCiliaElement('radialSpokes')"><div class="legend-color" style="background:#60D890;color:#60D890;"></div><span class="legend-label">Radial Spokes</span></div>
+        <div class="legend-item" onclick="highlightCiliaElement('transitionalZone')"><div class="legend-color" style="background:#C080F0;color:#C080F0;"></div><span class="legend-label">Transitional Zone</span></div>
+        <div class="legend-item" onclick="highlightCiliaElement('basalBody')"><div class="legend-color" style="background:#E06080;color:#E06080;"></div><span class="legend-label">Basal Body</span></div>
+        <div class="legend-item" onclick="highlightCiliaElement('alarSheet')"><div class="legend-color" style="background:#F07050;color:#F07050;"></div><span class="legend-label">Alar Sheet</span></div>
+        <div class="legend-item" onclick="highlightCiliaElement('basalFoot')"><div class="legend-color" style="background:#70B0E0;color:#70B0E0;"></div><span class="legend-label">Basal Foot</span></div>
+        <div class="legend-item" onclick="highlightCiliaElement('striatedRootlet')"><div class="legend-color" style="background:#F0A040;color:#F0A040;"></div><span class="legend-label">Striated Rootlet</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════ CROSS-SECTION ═══ -->
+  <section class="module-section" id="cross-section">
+    <div class="title-section">
+      <div class="title-badge"><span>⭕</span><span>Axonemal Cross-Section</span></div>
+      <h1>The 9+2 Arrangement</h1>
+      <p>The hallmark of motile cilia — nine peripheral microtubule doublets surrounding a central pair. Click each component to learn more.</p>
+    </div>
+
+    <div class="content-card">
+      <div class="main-grid">
+        <!-- LEFT: Doublet cross section -->
+        <div class="schematic-container">
+          <svg class="schematic-svg" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <radialGradient id="crossBg" cx="50%" cy="50%">
+                <stop offset="0%" stop-color="#101828"/>
+                <stop offset="100%" stop-color="#060C18"/>
+              </radialGradient>
+              <radialGradient id="doubletGrad" cx="35%" cy="35%">
+                <stop offset="0%" stop-color="#6CCCF0"/>
+                <stop offset="100%" stop-color="#1A5878"/>
+              </radialGradient>
+              <radialGradient id="centralGrad" cx="35%" cy="35%">
+                <stop offset="0%" stop-color="#F8F060"/>
+                <stop offset="100%" stop-color="#807810"/>
+              </radialGradient>
+              <filter id="xGlow"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+            </defs>
+            <rect width="400" height="400" fill="url(#crossBg)"/>
+
+            <!-- Outer ring boundary (plasma membrane) -->
+            <circle cx="200" cy="200" r="170" fill="none" stroke="#80C8A0" stroke-width="6" opacity="0.6" filter="url(#xGlow)"/>
+            <circle cx="200" cy="200" r="163" fill="none" stroke="#80C8A0" stroke-width="2" stroke-dasharray="5 4" opacity="0.3"/>
+
+            <!-- Central sheath -->
+            <circle cx="200" cy="200" r="48" fill="rgba(240,224,64,0.06)" stroke="#F0E040" stroke-width="1.5" opacity="0.5"/>
+            <!-- Central pair -->
+            <circle cx="192" cy="200" r="14" fill="url(#centralGrad)" stroke="#F0E040" stroke-width="2" filter="url(#xGlow)"/>
+            <circle cx="208" cy="200" r="14" fill="url(#centralGrad)" stroke="#F0E040" stroke-width="2" filter="url(#xGlow)"/>
+            <text x="200" y="240" text-anchor="middle" fill="#F0E040" font-size="8.5" font-family="DM Mono,monospace">Central pair</text>
+
+            <!-- 9 doublets at 40° intervals. Each doublet = A (full) + B (partial C shape) -->
+            <!-- Doublet positions: angle = i*40 deg, radius=128 from center -->
+            <!-- i=0: top 270° -->
+            <g id="xDoublet0" class="interactive-element" data-element="crossDoublet" transform="rotate(-90,200,200)">
+              <g transform="translate(200,72)">
+                <circle cx="-7" cy="0" r="14" fill="url(#doubletGrad)" stroke="#5BC4F0" stroke-width="2"/>
+                <text cx="-7" cy="0" text-anchor="middle" fill="white" font-size="8" font-family="DM Mono,monospace" x="-7" y="4">A</text>
+                <path d="M 7,0 A 14 14 0 1 1 7,-1" fill="none" stroke="#3A9ED4" stroke-width="2" opacity="0.85"/>
+                <circle cx="7" cy="0" r="11" fill="rgba(58,158,212,0.55)" stroke="#3A9ED4" stroke-width="1.8"/>
+                <text x="7" y="4" text-anchor="middle" fill="white" font-size="8" font-family="DM Mono,monospace">B</text>
+                <!-- Dynein arm -->
+                <path d="M -7,-14 Q -20,-20 -22,-12 Q -20,-4 -7,-14" fill="#F07850" opacity="0.9" filter="url(#xGlow)"/>
+                <!-- Radial spoke -->
+                <line x1="-7" y1="0" x2="-7" y2="40" stroke="#60D890" stroke-width="2" stroke-dasharray="3 2" opacity="0.8"/>
+                <!-- Nexin to neighbour sketched via arc -->
+              </g>
+            </g>
+            <!-- Doublet 1 -->
+            <g transform="rotate(-50,200,200)">
+              <g transform="translate(200,72)">
+                <circle cx="-7" cy="0" r="14" fill="url(#doubletGrad)" stroke="#5BC4F0" stroke-width="2"/>
+                <text x="-7" y="4" text-anchor="middle" fill="white" font-size="8" font-family="DM Mono,monospace">A</text>
+                <circle cx="7" cy="0" r="11" fill="rgba(58,158,212,0.55)" stroke="#3A9ED4" stroke-width="1.8"/>
+                <text x="7" y="4" text-anchor="middle" fill="white" font-size="8" font-family="DM Mono,monospace">B</text>
+                <path d="M -7,-14 Q -20,-20 -22,-12 Q -20,-4 -7,-14" fill="#F07850" opacity="0.9" filter="url(#xGlow)"/>
+                <line x1="-7" y1="0" x2="-7" y2="40" stroke="#60D890" stroke-width="2" stroke-dasharray="3 2" opacity="0.8"/>
+              </g>
+            </g>
+            <!-- Doublet 2 -->
+            <g transform="rotate(-10,200,200)">
+              <g transform="translate(200,72)">
+                <circle cx="-7" cy="0" r="14" fill="url(#doubletGrad)" stroke="#5BC4F0" stroke-width="2"/>
+                <text x="-7" y="4" text-anchor="middle" fill="white" font-size="8" font-family="DM Mono,monospace">A</text>
+                <circle cx="7" cy="0" r="11" fill="rgba(58,158,212,0.55)" stroke="#3A9ED4" stroke-width="1.8"/>
+                <text x="7" y="4" text-anchor="middle" fill="white" font-size="8" font-family="DM Mono,monospace">B</text>
+                <path d="M -7,-14 Q -20,-20 -22,-12 Q -20,-4 -7,-14" fill="#F07850" opacity="0.9" filter="url(#xGlow)"/>
+                <line x1="-7" y1="0" x2="-7" y2="40" stroke="#60D890" stroke-width="2" stroke-dasharray="3 2" opacity="0.8"/>
+              </g>
+            </g>
+            <!-- Doublet 3 -->
+            <g transform="rotate(30,200,200)">
+              <g transform="translate(200,72)">
+                <circle cx="-7" cy="0" r="14" fill="url(#doubletGrad)" stroke="#5BC4F0" stroke-width="2"/>
+                <text x="-7" y="4" text-anchor="middle" fill="white" font-size="8" font-family="DM Mono,monospace">A</text>
+                <circle cx="7" cy="0" r="11" fill="rgba(58,158,212,0.55)" stroke="#3A9ED4" stroke-width="1.8"/>
+                <text x="7" y="4" text-anchor="middle" fill="white" font-size="8" font-family="DM Mono,monospace">B</text>
+                <path d="M -7,-14 Q -20,-20 -22,-12 Q -20,-4 -7,-14" fill="#F07850" opacity="0.9" filter="url(#xGlow)"/>
+                <line x1="-7" y1="0" x2="-7" y2="40" stroke="#60D890" stroke-width="2" stroke-dasharray="3 2" opacity="0.8"/>
+              </g>
+            </g>
+            <!-- Doublet 4 -->
+            <g transform="rotate(70,200,200)">
+              <g transform="translate(200,72)">
+                <circle cx="-7" cy="0" r="14" fill="url(#doubletGrad)" stroke="#5BC4F0" stroke-width="2"/>
+                <text x="-7" y="4" text-anchor="middle" fill="white" font-size="8" font-family="DM Mono,monospace">A</text>
+                <circle cx="7" cy="0" r="11" fill="rgba(58,158,212,0.55)" stroke="#3A9ED4" stroke-width="1.8"/>
+                <text x="7" y="4" text-anchor="middle" fill="white" font-size="8" font-family="DM Mono,monospace">B</text>
+                <path d="M -7,-14 Q -20,-20 -22,-12 Q -20,-4 -7,-14" fill="#F07850" opacity="0.9" filter="url(#xGlow)"/>
+                <line x1="-7" y1="0" x2="-7" y2="40" stroke="#60D890" stroke-width="2" stroke-dasharray="3 2" opacity="0.8"/>
+              </g>
+            </g>
+            <!-- Doublet 5 -->
+            <g transform="rotate(110,200,200)">
+              <g transform="translate(200,72)">
+                <circle cx="-7" cy="0" r="14" fill="url(#doubletGrad)" stroke="#5BC4F0" stroke-width="2"/>
+                <text x="-7" y="4" text-anchor="middle" fill="white" font-size="8" font-family="DM Mono,monospace">A</text>
+                <circle cx="7" cy="0" r="11" fill="rgba(58,158,212,0.55)" stroke="#3A9ED4" stroke-width="1.8"/>
+                <text x="7" y="4" text-anchor="middle" fill="white" font-size="8" font-family="DM Mono,monospace">B</text>
+                <path d="M -7,-14 Q -20,-20 -22,-12 Q -20,-4 -7,-14" fill="#F07850" opacity="0.9" filter="url(#xGlow)"/>
+                <line x1="-7" y1="0" x2="-7" y2="40" stroke="#60D890" stroke-width="2" stroke-dasharray="3 2" opacity="0.8"/>
+              </g>
+            </g>
+            <!-- Doublet 6 -->
+            <g transform="rotate(150,200,200)">
+              <g transform="translate(200,72)">
+                <circle cx="-7" cy="0" r="14" fill="url(#doubletGrad)" stroke="#5BC4F0" stroke-width="2"/>
+                <text x="-7" y="4" text-anchor="middle" fill="white" font-size="8" font-family="DM Mono,monospace">A</text>
+                <circle cx="7" cy="0" r="11" fill="rgba(58,158,212,0.55)" stroke="#3A9ED4" stroke-width="1.8"/>
+                <text x="7" y="4" text-anchor="middle" fill="white" font-size="8" font-family="DM Mono,monospace">B</text>
+                <path d="M -7,-14 Q -20,-20 -22,-12 Q -20,-4 -7,-14" fill="#F07850" opacity="0.9" filter="url(#xGlow)"/>
+                <line x1="-7" y1="0" x2="-7" y2="40" stroke="#60D890" stroke-width="2" stroke-dasharray="3 2" opacity="0.8"/>
+              </g>
+            </g>
+            <!-- Doublet 7 -->
+            <g transform="rotate(190,200,200)">
+              <g transform="translate(200,72)">
+                <circle cx="-7" cy="0" r="14" fill="url(#doubletGrad)" stroke="#5BC4F0" stroke-width="2"/>
+                <text x="-7" y="4" text-anchor="middle" fill="white" font-size="8" font-family="DM Mono,monospace">A</text>
+                <circle cx="7" cy="0" r="11" fill="rgba(58,158,212,0.55)" stroke="#3A9ED4" stroke-width="1.8"/>
+                <text x="7" y="4" text-anchor="middle" fill="white" font-size="8" font-family="DM Mono,monospace">B</text>
+                <path d="M -7,-14 Q -20,-20 -22,-12 Q -20,-4 -7,-14" fill="#F07850" opacity="0.9" filter="url(#xGlow)"/>
+                <line x1="-7" y1="0" x2="-7" y2="40" stroke="#60D890" stroke-width="2" stroke-dasharray="3 2" opacity="0.8"/>
+              </g>
+            </g>
+            <!-- Doublet 8 -->
+            <g transform="rotate(230,200,200)">
+              <g transform="translate(200,72)">
+                <circle cx="-7" cy="0" r="14" fill="url(#doubletGrad)" stroke="#5BC4F0" stroke-width="2"/>
+                <text x="-7" y="4" text-anchor="middle" fill="white" font-size="8" font-family="DM Mono,monospace">A</text>
+                <circle cx="7" cy="0" r="11" fill="rgba(58,158,212,0.55)" stroke="#3A9ED4" stroke-width="1.8"/>
+                <text x="7" y="4" text-anchor="middle" fill="white" font-size="8" font-family="DM Mono,monospace">B</text>
+                <path d="M -7,-14 Q -20,-20 -22,-12 Q -20,-4 -7,-14" fill="#F07850" opacity="0.9" filter="url(#xGlow)"/>
+                <line x1="-7" y1="0" x2="-7" y2="40" stroke="#60D890" stroke-width="2" stroke-dasharray="3 2" opacity="0.8"/>
+              </g>
+            </g>
+
+            <!-- Nexin ring (outermost ring connecting doublets) -->
+            <circle cx="200" cy="200" r="128" fill="none" stroke="#A070E8" stroke-width="1.5" stroke-dasharray="12 8" opacity="0.5"/>
+
+            <!-- Labels -->
+            <text x="200" y="18" text-anchor="middle" fill="#5BC4F0" font-size="11" font-family="DM Sans,sans-serif" font-weight="600">Microtubule doublet</text>
+            <text x="332" y="200" fill="#F07850" font-size="10" font-family="DM Sans,sans-serif">Dynein arm</text>
+            <text x="330" y="225" fill="#A070E8" font-size="10" font-family="DM Sans,sans-serif">Nexin ring</text>
+            <text x="330" y="250" fill="#60D890" font-size="10" font-family="DM Sans,sans-serif">Radial spoke</text>
+            <text x="32" y="200" fill="#80C8A0" font-size="10" font-family="DM Sans,sans-serif">Plasma</text>
+            <text x="25" y="215" fill="#80C8A0" font-size="10" font-family="DM Sans,sans-serif">membrane</text>
+          </svg>
+        </div>
+
+        <!-- RIGHT: Tubulin detail -->
+        <div class="schematic-container">
+          <svg class="schematic-svg" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <radialGradient id="tubA" cx="35%" cy="35%">
+                <stop offset="0%" stop-color="#6CCCF0"/>
+                <stop offset="100%" stop-color="#1A5878"/>
+              </radialGradient>
+              <radialGradient id="tubB" cx="35%" cy="35%">
+                <stop offset="0%" stop-color="#F09070"/>
+                <stop offset="100%" stop-color="#783018"/>
+              </radialGradient>
+            </defs>
+            <rect width="400" height="400" fill="url(#crossBg)"/>
+
+            <text x="200" y="28" text-anchor="middle" fill="#5BC4F0" font-size="13" font-family="Syne,sans-serif" font-weight="700">Microtubule Doublet Detail</text>
+
+            <!-- A-tubule (13 protofilaments) -->
+            <text x="120" y="60" text-anchor="middle" fill="#5BC4F0" font-size="11" font-family="DM Mono,monospace" font-weight="600">A-tubule (13 protofilaments)</text>
+            <g transform="translate(20,70)">
+              <!-- 4 rows × 4 cols approximate grid of tubulin spheres -->
+              <g id="atubulin">
+                <!-- row 1 -->
+                <circle cx="20" cy="15"  r="13" fill="url(#tubA)" stroke="#5BC4F0" stroke-width="1.5"/>
+                <circle cx="48" cy="15"  r="13" fill="url(#tubB)" stroke="#F09070" stroke-width="1.5"/>
+                <circle cx="76" cy="15"  r="13" fill="url(#tubA)" stroke="#5BC4F0" stroke-width="1.5"/>
+                <circle cx="104" cy="15" r="13" fill="url(#tubB)" stroke="#F09070" stroke-width="1.5"/>
+                <circle cx="132" cy="15" r="13" fill="url(#tubA)" stroke="#5BC4F0" stroke-width="1.5"/>
+                <circle cx="160" cy="15" r="13" fill="url(#tubB)" stroke="#F09070" stroke-width="1.5"/>
+                <circle cx="188" cy="15" r="13" fill="url(#tubA)" stroke="#5BC4F0" stroke-width="1.5"/>
+                <!-- row 2 -->
+                <circle cx="20"  cy="43" r="13" fill="url(#tubB)" stroke="#F09070" stroke-width="1.5"/>
+                <circle cx="48"  cy="43" r="13" fill="url(#tubA)" stroke="#5BC4F0" stroke-width="1.5"/>
+                <circle cx="76"  cy="43" r="13" fill="url(#tubB)" stroke="#F09070" stroke-width="1.5"/>
+                <circle cx="104" cy="43" r="13" fill="url(#tubA)" stroke="#5BC4F0" stroke-width="1.5"/>
+                <circle cx="132" cy="43" r="13" fill="url(#tubB)" stroke="#F09070" stroke-width="1.5"/>
+                <circle cx="160" cy="43" r="13" fill="url(#tubA)" stroke="#5BC4F0" stroke-width="1.5"/>
+                <circle cx="188" cy="43" r="13" fill="url(#tubB)" stroke="#F09070" stroke-width="1.5"/>
+                <!-- row 3 -->
+                <circle cx="20"  cy="71" r="13" fill="url(#tubA)" stroke="#5BC4F0" stroke-width="1.5"/>
+                <circle cx="48"  cy="71" r="13" fill="url(#tubB)" stroke="#F09070" stroke-width="1.5"/>
+                <circle cx="76"  cy="71" r="13" fill="url(#tubA)" stroke="#5BC4F0" stroke-width="1.5"/>
+                <circle cx="104" cy="71" r="13" fill="url(#tubB)" stroke="#F09070" stroke-width="1.5"/>
+                <circle cx="132" cy="71" r="13" fill="url(#tubA)" stroke="#5BC4F0" stroke-width="1.5"/>
+                <circle cx="160" cy="71" r="13" fill="url(#tubB)" stroke="#F09070" stroke-width="1.5"/>
+                <circle cx="188" cy="71" r="13" fill="url(#tubA)" stroke="#5BC4F0" stroke-width="1.5"/>
+              </g>
+            </g>
+
+            <!-- B-tubule (10 protofilaments, shown below) -->
+            <text x="120" y="200" text-anchor="middle" fill="#F09070" font-size="11" font-family="DM Mono,monospace" font-weight="600">B-tubule (10 protofilaments)</text>
+            <g transform="translate(20,210)">
+              <circle cx="20"  cy="15" r="13" fill="url(#tubB)" stroke="#F09070" stroke-width="1.5"/>
+              <circle cx="48"  cy="15" r="13" fill="url(#tubA)" stroke="#5BC4F0" stroke-width="1.5"/>
+              <circle cx="76"  cy="15" r="13" fill="url(#tubB)" stroke="#F09070" stroke-width="1.5"/>
+              <circle cx="104" cy="15" r="13" fill="url(#tubA)" stroke="#5BC4F0" stroke-width="1.5"/>
+              <circle cx="132" cy="15" r="13" fill="url(#tubB)" stroke="#F09070" stroke-width="1.5"/>
+              <circle cx="20"  cy="43" r="13" fill="url(#tubA)" stroke="#5BC4F0" stroke-width="1.5"/>
+              <circle cx="48"  cy="43" r="13" fill="url(#tubB)" stroke="#F09070" stroke-width="1.5"/>
+              <circle cx="76"  cy="43" r="13" fill="url(#tubA)" stroke="#5BC4F0" stroke-width="1.5"/>
+              <circle cx="104" cy="43" r="13" fill="url(#tubB)" stroke="#F09070" stroke-width="1.5"/>
+              <circle cx="132" cy="43" r="13" fill="url(#tubA)" stroke="#5BC4F0" stroke-width="1.5"/>
+            </g>
+
+            <!-- Legend -->
+            <g transform="translate(240,80)">
+              <circle cx="14" cy="14" r="12" fill="url(#tubA)" stroke="#5BC4F0" stroke-width="1.5"/>
+              <text x="32" y="19" fill="#5BC4F0" font-size="11" font-family="DM Sans,sans-serif">α-tubulin</text>
+              <circle cx="14" cy="44" r="12" fill="url(#tubB)" stroke="#F09070" stroke-width="1.5"/>
+              <text x="32" y="49" fill="#F09070" font-size="11" font-family="DM Sans,sans-serif">β-tubulin</text>
+            </g>
+
+            <text x="200" y="370" text-anchor="middle" fill="#8A9BB8" font-size="10" font-family="DM Sans,sans-serif">Based on Ross &amp; Pawlina, Fig 5.7</text>
+          </svg>
+        </div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-value">9</div><div class="stat-label">Outer doublet pairs</div></div>
+        <div class="stat-card"><div class="stat-value">2</div><div class="stat-label">Central singlets</div></div>
+        <div class="stat-card"><div class="stat-value">13</div><div class="stat-label">A-tubule protofilaments</div></div>
+        <div class="stat-card"><div class="stat-value">10</div><div class="stat-label">B-tubule protofilaments</div></div>
+        <div class="stat-card"><div class="stat-value">~25 nm</div><div class="stat-label">Microtubule diameter</div></div>
+        <div class="stat-card"><div class="stat-value">8 nm</div><div class="stat-label">Dynein arm step size</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════ LEARN ════════ -->
+  <section class="module-section" id="learn">
+    <div class="title-section">
+      <div class="title-badge"><span>📚</span><span>Histology Content</span></div>
+      <h1>Ciliary Biology</h1>
+      <p>Comprehensive content from Ross &amp; Pawlina's Histology: A Text and Atlas, Alberts Molecular Biology of the Cell, and Junqueira's Basic Histology.</p>
+    </div>
+
+    <div class="content-card">
+      <h2>Overview of Cilia</h2>
+      <p>Cilia are slender, hair-like projections of the plasma membrane that extend from the apical surface of many epithelial cells. They are among the most architecturally complex organelles in the body, measuring approximately 5–15 μm in length and 250 nm in diameter, and are found on respiratory epithelium, the oviduct, the ependyma of the brain ventricles, and many other surfaces.</p>
+      <div class="reference">Ross MH, Pawlina W. Histology: A Text and Atlas. 8th ed. Philadelphia: Wolters Kluwer; 2020. Chapter 5: Epithelial Tissue, pp. 112–130.</div>
+
+      <h3>Classification of Cilia</h3>
+      <p>Cilia are broadly classified into two functional categories:</p>
+      <ul>
+        <li><strong>Motile cilia (9+2):</strong> Contain the classic 9+2 axonemal arrangement. Actively beat to propel fluid or mucus across epithelial surfaces. Found on respiratory epithelium (trachea, bronchi), oviduct, ependymal cells, and the embryonic node.</li>
+        <li><strong>Primary cilia (9+0):</strong> Lack the central pair of microtubules and dynein arms. Largely non-motile; function as sensory antennae. Found on virtually every nucleated cell in the body. Critical for Hedgehog, Wnt, and PDGF signalling pathways.</li>
+      </ul>
+      <div class="reference">Satir P, Christensen ST. Overview of structure and function of mammalian cilia. Annu Rev Physiol. 2007;69:377–400.</div>
+
+      <h3>Ultrastructure: The Axoneme</h3>
+      <p>The axoneme is the internal cytoskeletal core of a cilium, composed of microtubules and associated proteins. In motile cilia the arrangement is designated 9+2:</p>
+      <ul>
+        <li><strong>Nine outer doublets:</strong> Each doublet consists of an A-tubule (13 protofilaments, complete) fused to a B-tubule (10 protofilaments, incomplete, sharing three with A). A-tubules carry the outer and inner dynein arms and radial spoke heads.</li>
+        <li><strong>Central pair:</strong> Two singlet microtubules enclosed by a central sheath, projecting radial spokes toward the outer doublets. The central pair rotates during ciliary beating, coordinating doublet sliding.</li>
+        <li><strong>Nexin–dynein regulatory complex (N-DRC):</strong> Elastic links connecting adjacent outer doublets, converting inter-doublet sliding into ciliary bending.</li>
+      </ul>
+
+      <div class="data-table">
+        <table>
+          <thead>
+            <tr><th>Component</th><th>Composition</th><th>Function</th><th>Disease when mutated</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Outer dynein arm (ODA)</td><td>Heavy, intermediate &amp; light chains</td><td>Force generation, beat frequency</td><td>PCD (DNAI1, DNAI2 mutations)</td></tr>
+            <tr><td>Inner dynein arm (IDA)</td><td>Multiple heavy chains (1a-1g)</td><td>Waveform control &amp; asymmetry</td><td>PCD (DNAH7 mutations)</td></tr>
+            <tr><td>Radial spoke</td><td>RSP1–23 proteins</td><td>Signal transduction, regulation</td><td>PCD (RSPH4A, RSPH9 mutations)</td></tr>
+            <tr><td>Nexin-DRC</td><td>DRC1–8 subunits</td><td>Converts sliding to bending</td><td>PCD (CCDC39, CCDC40)</td></tr>
+            <tr><td>Central pair</td><td>PF6, PF16, PF20 projections</td><td>Coordinates beat cycle</td><td>PCD (HYDIN mutation)</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>The Basal Body</h3>
+      <p>Each cilium is anchored to the cell by a basal body (formerly called a kinetosome), a modified centriole approximately 400 nm in length. Its key features are:</p>
+      <ul>
+        <li><strong>Triplet microtubules:</strong> The basal body contains nine sets of microtubule triplets (A, B, and C tubules) arranged in a pinwheel. The C-tubule is absent above the transitional zone, giving rise to the doublet pattern of the axoneme.</li>
+        <li><strong>Alar sheets (transitional fibres):</strong> Electron-dense Y-shaped fibres that connect the A-tubule of each doublet to the overlying plasma membrane at the base of the cilium, forming the ciliary gate.</li>
+        <li><strong>Basal foot:</strong> A conical appendage projecting laterally from the basal body in the direction of the ciliary beat, determining polarity of beating across the epithelial surface.</li>
+        <li><strong>Striated rootlet:</strong> A striated fibrous structure extending from the proximal end of the basal body deep into the cytoplasm; anchors the basal body and may transmit mechanical forces to the cell interior.</li>
+      </ul>
+      <div class="reference">Gomperts BN, Gong-Cooper X, Hackett BP. Foxj1 regulates basal body anchoring to the cytoskeleton of ciliated pulmonary epithelial cells. J Cell Sci. 2004;117:1329–1337.</div>
+
+      <h3>Ciliary Motility: The Sliding Filament Mechanism</h3>
+      <p>Ciliary beating is produced by dynein-mediated sliding of adjacent doublets, constrained to bending by nexin links and the basal body anchor. The cycle proceeds in three phases:</p>
+      <ol>
+        <li><strong>Power stroke:</strong> Outer dynein arms on doublets 1–4 (one hemisphere) are activated, causing those doublets to slide toward the ciliary tip relative to doublets 5–9. Nexin links constrain this to a bending motion. The cilium sweeps through ~30° in ~30 ms at maximum speed.</li>
+        <li><strong>Recovery stroke:</strong> The cilium returns to upright position with a slower, curved path so that minimal fluid is dragged back.</li>
+        <li><strong>Coordination (metachronal wave):</strong> Adjacent cilia beat slightly out of phase, producing a wave that efficiently transports mucus at 5–20 mm/min in the airway.</li>
+      </ol>
+
+      <div class="equation">Force = n × f<sub>dynein</sub> × L ≈ 2–4 pN per dynein arm × 2,000 arms/cilium ≈ 4–8 nN</div>
+
+      <h3>Intraflagellar Transport (IFT)</h3>
+      <p>Because cilia lack ribosomes, all ciliary proteins must be transported from the cell body along the axoneme by intraflagellar transport. IFT is bidirectional:</p>
+      <ul>
+        <li><strong>IFT-B (anterograde):</strong> Driven by kinesin-2 toward the ciliary tip; delivers tubulin, dynein arms, and signalling proteins.</li>
+        <li><strong>IFT-A (retrograde):</strong> Driven by cytoplasmic dynein-2 back to the basal body; recycles IFT machinery and removes turnover products.</li>
+      </ul>
+
+      <div class="clinical-note">
+        <h4>⚕️ Clinical Significance: Kartagener Syndrome</h4>
+        <p>Kartagener syndrome (a subset of Primary Ciliary Dyskinesia) is characterised by the triad of bronchiectasis, sinusitis, and situs inversus totalis (mirror-image organ arrangement). It results from autosomal-recessive mutations affecting dynein arm assembly (most commonly DNAI1 or DNAH5), rendering cilia immotile. Because the embryonic node cilia are responsible for establishing left–right body asymmetry, their absence causes random organ lateralisation in 50% of PCD cases.</p>
+      </div>
+
+      <h3>Ciliogenesis</h3>
+      <p>During differentiation of multiciliated cells (e.g. airway epithelium), cells produce hundreds of cilia via two pathways:</p>
+      <ul>
+        <li><strong>Intracellular pathway:</strong> Centrioles are generated de novo from deuterosomes — electron-dense platforms in the cytoplasm — and then migrate to the apical membrane where they mature into basal bodies.</li>
+        <li><strong>Extracellular pathway:</strong> In some cell types, nascent basal bodies dock at the apical membrane before cilia extend, guided by rab8 and centrin proteins.</li>
+      </ul>
+      <div class="reference">Spassky N, Meunier A. The development and functions of multiciliated epithelia. Nat Rev Mol Cell Biol. 2017;18(7):423–436.</div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════ RESEARCH ═══════ -->
+  <section class="module-section" id="research">
+    <div class="title-section">
+      <div class="title-badge"><span>🧫</span><span>Current Research</span></div>
+      <h1>Ciliopathies &amp; Research</h1>
+      <p>Cutting-edge research in ciliary biology — from genetic disease mechanisms to therapeutic strategies and developmental signalling.</p>
+    </div>
+
+    <div class="content-card">
+      <h2>Ciliopathies: Disease of Defective Cilia</h2>
+      <p>The term <em>ciliopathy</em> describes a growing class of genetic disorders caused by dysfunction of cilia. Given that primary cilia are present on nearly every cell, ciliopathies are remarkably pleiotropic — affecting the kidney, retina, brain, liver, skeleton, and laterality organs simultaneously.</p>
+
+      <h3>1. Primary Ciliary Dyskinesia (PCD)</h3>
+      <p>PCD affects approximately 1 in 15,000–20,000 live births worldwide. Over 50 causative genes have been identified, encoding proteins involved in outer dynein arm assembly (ODA-DC), inner dynein arm assembly (DNAAF proteins), radial spoke heads, and the central pair.</p>
+
+      <div class="data-table">
+        <table>
+          <thead>
+            <tr><th>Gene</th><th>Protein/complex</th><th>Ultrastructural defect</th><th>Clinical features</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>DNAI1</td><td>ODA intermediate chain</td><td>Absent ODAs</td><td>Bronchiectasis, situs inversus</td></tr>
+            <tr><td>DNAH5</td><td>ODA heavy chain</td><td>Absent/short ODAs</td><td>Bronchiectasis, chronic sinusitis</td></tr>
+            <tr><td>CCDC39</td><td>Ruler complex</td><td>Absent IDAs + transposition</td><td>Severe bronchiectasis</td></tr>
+            <tr><td>RSPH4A</td><td>Radial spoke head</td><td>Absent central pair projections</td><td>Situs solitus, less severe</td></tr>
+            <tr><td>HYDIN</td><td>Central pair projection</td><td>Absent C2b projection</td><td>Bronchiectasis, infertility</td></tr>
+            <tr><td>DNAH11</td><td>ODA heavy chain (β)</td><td>Normal EM, hyperkinetic cilia</td><td>Situs inversus, milder airways</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="reference">Horani A, Ferkol TW. Understanding Primary Ciliary Dyskinesia and Other Ciliopathies. J Pediatr. 2021;230:15–22.</div>
+
+      <h3>2. Polycystic Kidney Disease (PKD) and Renal Ciliopathies</h3>
+      <p>Primary cilia on renal tubular epithelial cells act as flow sensors, bending in response to urine flow and triggering Ca²⁺ signalling through PC1 (polycystin-1) and PC2 (polycystin-2) channel complexes. Mutations in PKD1 or PKD2 abrogate this mechanosensation, leading to uncontrolled cell proliferation and cyst formation. ADPKD affects ~1 in 400–1,000 individuals, making it one of the most common monogenic diseases in humans.</p>
+
+      <div class="data-table">
+        <table>
+          <thead>
+            <tr><th>Disease</th><th>Gene</th><th>Ciliary mechanism</th><th>Organs affected</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>ADPKD</td><td>PKD1/PKD2</td><td>Loss of flow-Ca²⁺ signalling</td><td>Kidneys, liver, pancreas</td></tr>
+            <tr><td>Nephronophthisis</td><td>NPHP1–20</td><td>Ciliary transition zone defect</td><td>Kidney, retina, brain</td></tr>
+            <tr><td>Bardet-Biedl (BBS)</td><td>BBS1–21</td><td>BBSome trafficking defect</td><td>Retina, kidney, obesity, polydactyly</td></tr>
+            <tr><td>Joubert syndrome</td><td>CEP290, AHI1, others</td><td>Transition zone / IFT</td><td>Cerebellum, retina, kidney</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>3. Hedgehog Signalling and Primary Cilia</h3>
+      <p>Primary cilia are essential hubs for vertebrate Hedgehog (Hh) signalling. In the absence of Sonic Hedgehog (Shh) ligand, the receptor Patched1 (PTCH1) resides in the ciliary membrane and suppresses Smoothened (SMO). Shh binding removes PTCH1, allowing SMO entry into cilia, where it activates GLI transcription factors at the ciliary tip. Disruption of this pathway causes holoprosencephaly, polydactyly, and Gorlin syndrome (basal cell naevus syndrome).</p>
+
+      <div class="clinical-note">
+        <h4>⚕️ Therapeutic Horizons</h4>
+        <p><strong>Read-through therapy:</strong> ~30% of PCD patients carry nonsense mutations amenable to ataluren (PTC124)-mediated read-through, restoring partial dynein arm expression. Phase II trials are ongoing. <br><br>
+        <strong>Trikafta-inspired approach:</strong> Small-molecule chaperones (analogous to CFTR correctors) designed to rescue misfolded DNAAF proteins are in pre-clinical development for dynein assembly factor mutations.<br><br>
+        <strong>SMO inhibitors:</strong> Vismodegib and sonidegib (FDA-approved) block the ciliary SMO pathway to treat Gorlin syndrome and locally advanced basal cell carcinoma.</p>
+      </div>
+
+      <h3>4. Cilia in Left–Right Asymmetry</h3>
+      <p>The embryonic node (a transient pit at the ventral surface of the developing embryo) contains ~200 monocilia that rotate clockwise at ~600 rpm, generating a leftward flow of morphogen-containing nodal vesicular parcels (NVPs). This flow activates Nodal signalling preferentially on the left side, establishing the left–right body axis. Immotile node cilia act as mechanosensors detecting this flow. Failure of node cilia produces heterotaxia — randomised organ placement.</p>
+
+      <div class="data-table">
+        <table>
+          <thead>
+            <tr><th>Cilia location</th><th>Type</th><th>Function</th><th>Beat pattern</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Airway epithelium</td><td>Motile (9+2)</td><td>Mucociliary clearance</td><td>Planar, ~10 Hz</td></tr>
+            <tr><td>Oviduct</td><td>Motile (9+2)</td><td>Ovum transport</td><td>Planar, ~10–20 Hz</td></tr>
+            <tr><td>Ependymal cells</td><td>Motile (9+2)</td><td>CSF circulation</td><td>Rotational, ~35 Hz</td></tr>
+            <tr><td>Embryonic node</td><td>Motile (9+0)</td><td>L-R axis determination</td><td>Rotational, ~600 rpm</td></tr>
+            <tr><td>Photoreceptors</td><td>Modified (9+0)</td><td>Connects inner to outer segment</td><td>Non-motile</td></tr>
+            <tr><td>Kidney tubules</td><td>Primary (9+0)</td><td>Flow mechanosensation</td><td>Non-motile</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="reference">Hamada H. Roles and regulations of asymmetric gene expression during mammalian embryonic development. Semin Cell Dev Biol. 2020;107:84–94.</div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ── BOTTOM NAV ────────────────────────────────────── -->
+<nav class="bottom-nav">
+  <div class="bottom-nav-content">
+    <div class="bottom-nav-item active" data-module="home"><div class="bottom-nav-icon">🏠</div><span>Home</span></div>
+    <div class="bottom-nav-item" data-module="interactive"><div class="bottom-nav-icon">🧬</div><span>Cilium</span></div>
+    <div class="bottom-nav-item" data-module="cross-section"><div class="bottom-nav-icon">⭕</div><span>9+2</span></div>
+    <div class="bottom-nav-item" data-module="learn"><div class="bottom-nav-icon">📚</div><span>Learn</span></div>
+    <div class="bottom-nav-item" data-module="research"><div class="bottom-nav-icon">🧫</div><span>Research</span></div>
+  </div>
+</nav>
+
+<!-- ── INFO OVERLAY ────────────────────────────────────── -->
+<div class="info-overlay" id="infoOverlay">
+  <div class="info-panel" id="infoPanel"></div>
+</div>
+
+<script>
+/* ────────────────── DATA ────────────────── */
+const ciliaElements = {
+  plasmaMembrane: {
+    title: 'Plasma Membrane',
+    subtitle: 'Ciliary Membrane Specialisation',
+    color: '#80C8A0',
+    icon: '🧬',
+    description: 'The plasma membrane surrounding the cilium is continuous with the cell\'s plasma membrane but has a distinct lipid and protein composition. It is enriched in phosphoinositides (especially PI(4,5)P₂ at the base and PI(3)P distally) and contains unique receptors, including Smoothened (Hh pathway), polycystins, and sensory GPCRs. The ciliary gate at the transition zone acts as a selective fence controlling entry and exit of membrane proteins.',
+    funFact: 'The transition zone acts as a "ciliary pore complex" analogous to the nuclear pore. NPHP and MKS protein modules form the gate, and their mutation causes nephronophthisis and Meckel–Gruber syndrome.',
+    stats: { 'Width': '~250 nm', 'Composition': 'PI-enriched lipid raft', 'Gate proteins': 'NPHP1–4, MKS1–6' }
+  },
+  axoneme: {
+    title: 'Axoneme',
+    subtitle: '9+2 Microtubule Array',
+    color: '#5BC4F0',
+    icon: '⚛️',
+    description: 'The axoneme is the core scaffold of the cilium, composed of nine outer microtubule doublets surrounding a central pair of singlet microtubules. Each outer doublet consists of an A-tubule (13 protofilaments) and an attached B-tubule (10 protofilaments). The A-tubule carries the outer dynein arms (ODA), inner dynein arms (IDA), and radial spoke heads. The microtubules are built of αβ-tubulin heterodimers with the plus ends oriented toward the ciliary tip.',
+    funFact: 'The axoneme contains over 600 distinct proteins! The "ruler" hypothesis proposes that CCDC39/CCDC40 form a 96-nm periodic scaffold that precisely spaces dynein arms and radial spokes along the doublet.',
+    stats: { 'Outer doublets': '9', 'Central pair': '2 singlets', 'Protofilaments (A)': '13', 'Protofilaments (B)': '10' }
+  },
+  dyneinArms: {
+    title: 'Dynein Arms',
+    subtitle: 'Outer & Inner Dynein Arms',
+    color: '#F07850',
+    icon: '⚙️',
+    description: 'Dynein arms are large ATPase motor complexes projecting from the A-tubule of each doublet toward the B-tubule of the adjacent doublet. Outer dynein arms (ODAs) primarily control beat frequency; inner dynein arms (IDAs), a heterogeneous set of 7 species (a–g), control waveform. Each dynein power-stroke moves the adjacent doublet by 8 nm per ATP hydrolysis event, generating ~1–4 pN of force. Across ~2,000 dynein arms per cilium, this produces sufficient force to propel mucus and fluid.',
+    funFact: 'Cytoplasmic dynein assembly factors (DNAAFs) pre-assemble dynein arms in the cytoplasm before IFT delivers them into the cilium. Mutations in 11 DNAAF genes cause PCD — most dynein-related PCD never actually assembles its motors properly!',
+    stats: { 'ODA per 96 nm': '1', 'IDA species': '7 (a–g)', 'Force per arm': '1–4 pN', 'Step size': '8 nm/ATP' }
+  },
+  nexinLinks: {
+    title: 'Nexin Links',
+    subtitle: 'Nexin–Dynein Regulatory Complex',
+    color: '#A070E8',
+    icon: '🔗',
+    description: 'Nexin links connect adjacent outer doublets and form the mechanical backbone that converts inter-doublet sliding into ciliary bending. They are not simple elastic springs but are part of the larger Nexin–Dynein Regulatory Complex (N-DRC), an ~1.5 MDa complex of at least 11 subunits (DRC1–8, plus FAP44, FAP57, FAP91). The N-DRC also has regulatory inputs from the radial spoke–central pair signalling cascade, providing spatial control over which dynein arms are activated at each phase of the beat cycle.',
+    funFact: 'Mutations in N-DRC components CCDC39 and CCDC40 cause a unique ultrastructural defect: absent IDAs plus transposition of one outer doublet toward the centre. These cases produce especially severe bronchiectasis.',
+    stats: { 'Repeat period': '96 nm', 'Subunits': '≥11 (DRC1–8, FAP44/57/91)', 'Function': 'Sliding → bending conversion' }
+  },
+  radialSpokes: {
+    title: 'Radial Spokes',
+    subtitle: 'Central Pair Signal Transducers',
+    color: '#60D890',
+    icon: '📡',
+    description: 'Radial spokes are T-shaped protein complexes (~1.7 MDa each) that project inward from the A-tubule of each doublet toward the central pair sheath. Three spokes (RS1, RS2, RS3) repeat every 96 nm. Their spoke heads interact with projections of the central pair, relaying mechanochemical signals that regulate IDA activity and waveform. The radial spoke-central pair apparatus acts as a biological switch to alternate doublet activation between the two sides of the axoneme, propagating the ciliary beat.',
+    funFact: 'Isolated spoke-head mutations (RSPH4A, RSPH9) uniquely cause circular ciliary beating rather than planar beating, resulting in PCD without situs inversus (left-right axis is set by rotational node cilia that are unaffected).',
+    stats: { 'Per 96 nm period': '3 spokes', 'Molecular weight': '~1.7 MDa each', 'Key proteins': 'RSP1, RSP4, RSP6, RSP9' }
+  },
+  transitionalZone: {
+    title: 'Transitional Zone',
+    subtitle: 'Ciliary Gate & Necklace',
+    color: '#C080F0',
+    icon: '🚧',
+    description: 'The transitional zone (TZ) is the ~0.5 μm segment between the basal body and the ciliary shaft where microtubule triplets (basal body) transition to doublets (axoneme). By freeze-fracture EM, the TZ membrane shows a characteristic "ciliary necklace" — rows of intramembrane particles. Two protein modules form the TZ gate: the NPHP module (NPHP1, NPHP4, NPHP8) and the MKS module (MKS1, MKS3, TMEM67, CEP290). These form the "Y-links" visible in EM cross-sections, anchoring doublets to the membrane.',
+    funFact: 'The TZ is so selective that even a lipid dye added to the cell body takes ~20 minutes to diffuse into the ciliary membrane! This compartmentalisation is essential for maintaining the unique signalling environment of the cilium.',
+    stats: { 'Length': '~0.5 μm', 'Key complexes': 'NPHP module, MKS module', 'Structure': 'Y-links, ciliary necklace' }
+  },
+  basalBody: {
+    title: 'Basal Body',
+    subtitle: 'Modified Centriole — Ciliary Anchor',
+    color: '#E06080',
+    icon: '⚓',
+    description: 'The basal body is a cylindrical structure ~400 nm long and ~200 nm wide, derived from a centriole (or generated de novo from a deuterosome). It contains nine sets of microtubule triplets (A, B, C) arranged in a 9-fold symmetric pinwheel without a central pair. The C-tubule terminates at the transitional zone, leaving doublets in the axoneme. Basal bodies are surrounded by pericentriolar material (PCM) and the subdistal/distal appendages that anchor them to the apical membrane.',
+    funFact: 'A single multiciliated airway epithelial cell must generate ~200–300 basal bodies during differentiation! This massive amplification depends on deuterosomes — transient platforms that each nucleate ~8 procentrioles simultaneously.',
+    stats: { 'Length': '~400 nm', 'Width': '~200 nm', 'Microtubules': 'Triplets (A+B+C)', 'Per airway cell': '200–300' }
+  },
+  alarSheet: {
+    title: 'Alar Sheet',
+    subtitle: 'Transitional Fibres / Ciliary Gate Anchors',
+    color: '#F07050',
+    icon: '🔩',
+    description: 'Alar sheets (also called transitional fibres or ciliary rootlet plaques) are electron-dense, wing-like fibres connecting the A-tubule of each basal body triplet to the overlying plasma membrane at the base of the cilium. In cross-section they appear as Y-shaped structures. They are composed of CEP164, CEP89, SCLT1, FBF1, and other distal appendage proteins. Their primary roles are anchoring the basal body to the plasma membrane and forming part of the ciliary gate.',
+    funFact: 'Mutations in CEP164 cause nephronophthisis type 15 with retinal dystrophy. CEP83 mutations cause Nephronophthisis type 18, highlighting how loss of a single alar sheet component causes devastating multi-organ disease.',
+    stats: { 'Composition': 'CEP164, CEP83, SCLT1, FBF1', 'Number': '9 (one per triplet)', 'Function': 'Membrane anchoring & ciliary gate' }
+  },
+  basalFoot: {
+    title: 'Basal Foot',
+    subtitle: 'Polarity Appendage',
+    color: '#70B0E0',
+    icon: '🧭',
+    description: 'The basal foot is a conical, electron-dense appendage projecting laterally from the basal body, oriented in the direction of the ciliary effective stroke. It represents the subdistal appendages of the mother centriole. Critically, the basal foot determines the rotational polarity of the basal body — and therefore the direction of ciliary beat. Across an epithelial surface, all basal feet align in the same direction (planar cell polarity), ensuring that all cilia beat in concert to produce effective fluid transport.',
+    funFact: 'Planar cell polarity (PCP) signalling proteins (Vangl1/2, Celsr1, Fzd3/6) are required for coordinated basal foot orientation. Disrupting PCP in mice produces cilia beating in random directions, causing hydrocephalus from defective CSF flow.',
+    stats: { 'Orientation': 'Direction of beat', 'Proteins': 'Centriolin, CEP110, ODF2', 'Signalling': 'PCP pathway (Vangl2, Celsr1)' }
+  },
+  striatedRootlet: {
+    title: 'Striated Rootlet',
+    subtitle: 'Cytoplasmic Anchor & Mechanical Dampener',
+    color: '#F0A040',
+    icon: '⚓',
+    description: 'The striated rootlet is a cross-striated fibrous structure 0.5–1 μm in diameter that extends from the proximal end of the basal body deep into the cytoplasm, often reaching the nucleus. It is composed primarily of rootletin (CROCC gene product) and C-Nap1, polymerised into a fibre with a ~66 nm cross-striation periodicity visible by transmission EM. The rootlet anchors the basal body against the mechanical forces generated by ciliary beating and may transmit mechanical stimuli from the cilium to the cell interior.',
+    funFact: 'Rootletin knockout mice develop normally but show gradual degeneration of photoreceptors and olfactory neurons — indicating that in sensory cilia, the rootlet is essential for long-term structural maintenance rather than development.',
+    stats: { 'Diameter': '0.5–1 μm', 'Striation period': '~66 nm', 'Key protein': 'Rootletin (CROCC)', 'Extends to': 'Near nucleus' }
+  }
+};
+
+/* ────────────────── NAVIGATION ─────────── */
+function navigateToModule(id) {
+  document.querySelectorAll('.module-section').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('.header-nav .nav-link').forEach(l => l.classList.remove('active'));
+  const hl = document.querySelector(`.header-nav .nav-link[data-module="${id}"]`);
+  if (hl) hl.classList.add('active');
+  document.querySelectorAll('.bottom-nav-item').forEach(i => i.classList.remove('active'));
+  const bi = document.querySelector(`.bottom-nav-item[data-module="${id}"]`);
+  if (bi) bi.classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+document.querySelectorAll('.header-nav .nav-link').forEach(l => {
+  l.addEventListener('click', e => { e.preventDefault(); navigateToModule(l.getAttribute('data-module')); });
+});
+document.querySelectorAll('.bottom-nav-item').forEach(i => {
+  i.addEventListener('click', () => navigateToModule(i.getAttribute('data-module')));
+});
+
+/* ────────────────── VIEW TOGGLE ─────────── */
+let beatActive = false;
+let labelsVisible = true;
+
+function toggleCiliaView(view, btn) {
+  document.querySelectorAll('.control-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const beatGroup = document.getElementById('beatGroup');
+  const flowParticles = document.getElementById('flowParticles');
+  if (view === 'beat') {
+    beatGroup.style.animation = 'beatCilia 1.2s ease-in-out infinite';
+    beatGroup.style.transformOrigin = '500px 600px';
+    flowParticles.style.opacity = '0';
+    beatActive = true;
+  } else if (view === 'function') {
+    beatGroup.style.animation = '';
+    flowParticles.style.opacity = '1';
+    beatActive = false;
+  } else {
+    beatGroup.style.animation = '';
+    flowParticles.style.opacity = '0';
+    beatActive = false;
+  }
+}
+
+function toggleLabels(btn) {
+  labelsVisible = !labelsVisible;
+  document.getElementById('labelsGroup').style.opacity = labelsVisible ? '1' : '0';
+  btn.textContent = labelsVisible ? 'Labels ON' : 'Labels OFF';
+  btn.classList.toggle('active', labelsVisible);
+}
+
+/* ────────────────── CLICK INTERACTION ──── */
+let selectedEl = null;
+const overlay = document.getElementById('infoOverlay');
+const panel   = document.getElementById('infoPanel');
+
+document.querySelectorAll('.interactive-element').forEach(el => {
+  el.addEventListener('click', e => {
+    e.stopPropagation();
+    const key = el.getAttribute('data-element');
+    if (!ciliaElements[key]) return;
+    if (selectedEl) selectedEl.classList.remove('selected');
+    el.classList.add('selected');
+    selectedEl = el;
+    showPanel(key);
+  });
+});
+
+function showPanel(key) {
+  const d = ciliaElements[key];
+  panel.innerHTML = `
+    <div class="info-header">
+      <div class="info-icon-wrapper" style="background:${d.color}">
+        <span class="info-icon">${d.icon}</span>
+      </div>
+      <button class="close-btn" onclick="closePanel()">×</button>
+    </div>
+    <h3>${d.title}</h3>
+    <p class="info-subtitle">${d.subtitle}</p>
+    <p class="info-description">${d.description}</p>
+    ${d.stats ? `
+    <div class="info-stats">
+      ${Object.entries(d.stats).map(([k,v]) => `
+        <div class="stat-card">
+          <div class="stat-label">${k}</div>
+          <div class="stat-value" style="font-size:1.1rem">${v}</div>
+        </div>`).join('')}
+    </div>` : ''}
+    <div class="fun-fact">
+      <div class="fun-fact-label"><span>🔬</span><span>Clinical &amp; Research Insight</span></div>
+      <p class="fun-fact-text">${d.funFact}</p>
+    </div>
+    <button class="action-btn" onclick="closePanel()">Continue Exploring</button>
+  `;
+  overlay.classList.add('active');
+}
+
+function closePanel() {
+  overlay.classList.remove('active');
+  if (selectedEl) { selectedEl.classList.remove('selected'); selectedEl = null; }
+}
+
+overlay.addEventListener('click', e => { if (e.target === overlay) closePanel(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closePanel(); });
+
+function highlightCiliaElement(key) {
+  const el = document.getElementById(key);
+  if (el) el.dispatchEvent(new Event('click', { bubbles: true }));
+}
+</script>
+</body>
+</html>
